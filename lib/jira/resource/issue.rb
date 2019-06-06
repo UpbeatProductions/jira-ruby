@@ -64,7 +64,8 @@ module JIRA
         result
       end
 
-      def self.jql(client, jql, options = { fields: nil, start_at: nil, max_results: nil, expand: nil, validate_query: true })
+
+      def self.jql(client, jql, options = { fields: nil, start_at: nil, max_results: nil, expand: nil, validate_query: true, autopaginate_results: true })
         url = client.options[:rest_base_path] + "/search?jql=#{CGI.escape(jql)}"
 
         url << "&fields=#{options[:fields].map { |value| CGI.escape(client.Field.name_to_id(value)) }.join(',')}" if options[:fields]
@@ -82,7 +83,28 @@ module JIRA
         if options[:max_results] && (options[:max_results] == 0)
           return json['total']
         end
-        json['issues'].map do |issue|
+        results = json['issues']
+
+        autopaginate = options[:autopaginate_results]
+
+        if autopaginate
+          while (json['startAt'] + json['maxResults']) < json['total']
+            url = client.options[:rest_base_path] + "/search?jql=#{CGI.escape(jql)}"
+            url << "&fields=#{options[:fields].map { |value| CGI.escape(client.Field.name_to_id(value)) }.join(',')}" if options[:fields]
+            url << "&startAt=#{CGI.escape((json['startAt'] + json['maxResults']).to_s)}"
+            url << "&maxResults=#{CGI.escape(options[:max_results].to_s)}" if options[:max_results]
+            url << '&validateQuery=false' if options[:validate_query] === false
+            if options[:expand]
+              options[:expand] = [options[:expand]] if options[:expand].is_a?(String)
+              url << "&expand=#{options[:expand].to_a.map { |value| CGI.escape(value.to_s) }.join(',')}"
+            end
+            response = client.get(url)
+            json = parse_json(response.body)
+            results += json['issues']
+          end
+        end
+
+        results.map do |issue|
           client.Issue.build(issue)
         end
       end
