@@ -24,7 +24,7 @@ module JIRA
       end
 
       def self.modified_after(client, timestamp, with_hydrated_issues: true, filter: nil)
-        response = client.get("#{client.options[:rest_base_path]}/#{endpoint_name}/updated?since=#{timestamp.to_i}")
+        response = client.get("#{client.options[:rest_base_path]}/#{endpoint_name}/updated?since=#{timestamp.to_i*1000}")
         
         json = JSON.parse(response.body)
         results = json['values']
@@ -42,7 +42,7 @@ module JIRA
       end
     
       def self.deleted_after(client, timestamp)
-        response = client.get("#{client.options[:rest_base_path]}/#{endpoint_name}/deleted?since=#{timestamp.to_i}")
+        response = client.get("#{client.options[:rest_base_path]}/#{endpoint_name}/deleted?since=#{timestamp.to_i*1000}")
         json = JSON.parse response.body
         results = json['values']
         while json['lastPage'] == false
