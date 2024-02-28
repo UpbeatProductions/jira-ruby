@@ -24,7 +24,8 @@ module JIRA
       end
 
       def self.modified_after(client, timestamp, with_hydrated_issues: true, filter: nil)
-        response = client.get("#{client.options[:rest_base_path]}/#{endpoint_name}/updated?since=#{(timestamp.to_f * 1000).to_i}")
+        response = client.get("#{client.options[:rest_base_path]}/#{endpoint_name}/updated?since=#{timestamp.to_i}")
+        
         json = JSON.parse(response.body)
         results = json['values']
         while json['lastPage'] == false
@@ -41,7 +42,7 @@ module JIRA
       end
     
       def self.deleted_after(client, timestamp)
-        response = client.get("#{client.options[:rest_base_path]}/#{endpoint_name}/deleted?since=#{(timestamp.to_f * 1000).to_i}")
+        response = client.get("#{client.options[:rest_base_path]}/#{endpoint_name}/deleted?since=#{timestamp.to_i}")
         json = JSON.parse response.body
         results = json['values']
         while json['lastPage'] == false
@@ -106,8 +107,14 @@ module JIRA
         issue_batch_size = 
           case client.request_client 
           when JIRA::OauthClient
-            25 
+            vputs '== Y! REQUEST CLIENT IS'
+            vputs client.request_client.class.name 
+
+            25
           else 
+            vputs '== N! REQUEST CLIENT IS'
+            vputs client.request_client.class.name 
+
             100 
           end 
 
@@ -118,6 +125,8 @@ module JIRA
             vputs rehydrated 
             vputs 'of' 
             vputs worklog_issue_ids.count
+            vputs the_issue_ids.count
+            vputs "id IN (#{the_issue_ids.join(',')})"
             client.Issue.jql("id IN (#{the_issue_ids.join(',')})")
           end.compact.flatten
     
